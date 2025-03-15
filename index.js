@@ -242,8 +242,15 @@ function setupWebSocket() {
 
         // Handle different types of messages
         if (message.channel === 'userFills' && message.data) {
-          for (const trade of message.data) {
-            await analyzeTrade(trade);
+          if (Array.isArray(message.data)) {
+            for (const trade of message.data) {
+              await analyzeTrade(trade);
+            }
+          } else if (message.data && typeof message.data === 'object') {
+            // Single trade data
+            await analyzeTrade(message.data);
+          } else {
+            console.log('[INFO] Received data is not in expected format:', message.data);
           }
         }
       } catch (error) {
@@ -270,6 +277,28 @@ function setupWebSocket() {
   }
 }
 
+// Function to run tests
+function runTests() {
+  // Test Telegram notification
+  sendNotification('🧪 Bot test: Notification system is working')
+    .then(() => console.log('[TEST] Notification test completed'))
+    .catch(err => console.error('[TEST] Notification test failed:', err));
+
+  // Test API connection
+  fetchMarkets()
+    .then(markets => {
+      if (Object.keys(markets).length > 0) {
+        console.log('[TEST] API connection successful - received market data');
+      } else {
+        console.log('[TEST] API connection test inconclusive - no market data');
+      }
+    })
+    .catch(err => console.error('[TEST] API connection test failed:', err));
+
+  // Test WebSocket (indirectly)
+  console.log('[TEST] WebSocket test: Check if "[INFO] WebSocket connection established" appears in logs');
+}
+
 // Main function
 async function main() {
   console.log(`[INFO] Starting to watch address ${TARGET_ADDRESS}`);
@@ -287,6 +316,9 @@ async function main() {
 
   // Set up WebSocket connection
   const ws = setupWebSocket();
+
+  // Uncomment for testing
+  setTimeout(runTests, 3000);
 
   // Handle shutdown properly
   process.on('SIGINT', async () => {
